@@ -1,64 +1,8 @@
 # M73_RNS
 
-**An operating mode for Reticulum on the amateur bands, with the station callsign carried in every frame.**
+**An operating mode for Reticulum on the amateur bands.**
 
 ---
-
-## Why this exists
-
-Reticulum transmits frames with no station identification inside them. On most transports that does not matter, because the modem puts the callsign in the waveform. On the slow modes it does matter, because the modem does not.
-
-Verified from Modem73's source, the encoder dispatch is:
-
-| `modem_type` | Encoder call | Receives `call_sign`? |
-|---|---|---|
-| 1 — MFSK | `mfsk_encoder_->encode(framed, size, center_freq, mfsk_mode)` | **No** |
-| 2 — RDM / Robust | `robust_encoder_->encode(framed, size, center_freq, robust_mode)` | **No** |
-| 0 — OFDM and others | `encoder_->encode(..., call_sign, oper_mode, postamble)` | **Yes** |
-
-So a stock station sending Reticulum over **RDM-300, RDM-600 or MFSK** transmits frames that carry no station identification at all. That is not a setting anyone chose; it is how those encoders are written.
-
-M73_RNS closes that gap by prepending a plain-text callsign to every frame:
-
-```
-M73:KJ5FQT:<the original frame>
-```
-
-Eleven bytes for a six-character callsign. ASCII, unencrypted, visible to anyone listening.
-
-**The purpose is station identification under 47 CFR §97.119.** Not concealment, and not transparency. The mode turns a transmission that was previously anonymous into one that carries a station's identity.
-
----
-
-## What works, and what does not
-
-This is the part nobody tells you, so it is first.
-
-| Sender | Receiver | Result |
-|---|---|---|
-| Stock | Stock | Works. Normal Reticulum. |
-| Stock | M73_RNS | **Works completely.** Frame passes through unchanged, logged as `rx_noenv`. |
-| M73_RNS | Stock | **Broken.** Prefix is added and never removed. Peer logs a protocol violation. |
-| M73_RNS | M73_RNS | Works. Full operation. |
-
-**The good news: adopting this does not cut you off.** An M73_RNS station receives from every stock station on the network with no loss at all. You can turn this on and keep working with everyone.
-
-**The bad news: your own transmissions are only readable by other stations running the mode.** A stock peer receives your frames, attributes them to your callsign, and then discards them, because the frame no longer starts with a valid Reticulum header.
-
-### The failure is not silent
-
-It would be nicer if it were. A stock station receiving your wrapped frame does not quietly discard it. It parses it as a malformed announce, fails signature verification, and writes this to its log:
-
-```
-Received invalid announce for <hash>: Invalid signature.
-Protocol violation on TCPInterface[Modem73/...]
-```
-
-**To that station you look like a spoofing attempt**, not like a station running an unfamiliar mode. That is a real cost of adopting this. If you are transmitting to a network you do not own, decide about it before you start.
-
----
-
-## Installation
 
 ### 1. Place the interface file
 
@@ -68,37 +12,12 @@ Copy `M73CallsignInterface.py` into your Reticulum interfaces directory:
 ~/.reticulum/interfaces/M73CallsignInterface.py
 ```
 
-The filename **must** be exactly `M73CallsignInterface.py`. Reticulum derives the file to load from
-the `type` value in your config, so `type = M73CallsignInterface` looks for a file of precisely that
-name.
-
-There are two different ways this goes wrong, and they behave very differently:
-
-| Mistake | What you see |
-|---|---|
-| `type` value does not match the filename | **Nothing.** Reticulum starts normally, the interface is simply absent, and no error is logged. |
-| The file is present but fails to load | `External interface initialisation failed` with a traceback pointing into `Reticulum.py` |
-
-The first is the dangerous one. A dotted module path such as `type = m73.M73CallsignInterface` also
-lands here: Reticulum does not treat it as a module, it looks for a *file* with that literal name,
-finds none, and carries on silently. If your interface seems not to exist, check that the `type`
-value and the filename are character-for-character identical before looking anywhere else.
-
-**You do not need to download anything else.** `M73CallsignInterface.py` subclasses the stock
-`Modem73Interface`, which is already present in `~/.reticulum/interfaces/` on any machine that has
-been running Modem73. Leave it where it is — do not delete or rename it. The import would fail
-without it, and Reticulum would report the failure as `External interface initialisation failed`
-with a traceback pointing into `Reticulum.py` rather than at this file.
-
-One consequence worth knowing: this interface inherits from whatever copy of `Modem73Interface.py`
-you have installed. It relies on several of that class's internal attributes (`_short_mtu`,
-`_short_policy`, `_handshake_x2`, `_proof_x2`). They are stable, but they are not a published
-interface, so a future change to the stock file could break this one. If you see unexpected
-behaviour after updating Modem73, that is the first thing to check.
+You also need the stock `Modem73Interface.py` from https://github.com/RFnexus/modem73interface/blob/master/Modem73Interface.py in the same directory. 
+The M73CallsignInterface subclasses the stock Modem73Interface not replaces it.
 
 ### 2. Turn ratchets off
 
-A station that publishes its private key cannot afford ratchets, because a peer holding a cached ratchet will encrypt to a key your published key cannot open. See the ratchets documentation on the Reticulum Callsign Registry for the one-line change and the identity consequences.
+A station that publishes its private key cannot ratchets, because a peer holding a cached ratchet will encrypt to a key your published key cannot open. See the ratchets documentation on the Reticulum Callsign Registry for the one-line change and the identity consequences.
 
 This is a prerequisite, not an option.
 
@@ -112,9 +31,9 @@ In `~/.reticulum/config`:
     enabled = true
     envelope = true
     callsign = YOURCALL
-    operator_log = ~/.reticulum/operator.log
+    operator_log = ~/.reticulum/m73log
     target_host = 127.0.0.1
-    target_port = 8002
+    target_port = 8001
     control_host = 127.0.0.1
     control_port = 8073
     mode = internal
@@ -131,7 +50,26 @@ In `~/.reticulum/config`:
 - `callsign` — your station callsign. Validated at startup; the interface refuses to load if it is missing or malformed, rather than transmit a placeholder.
 - `envelope` — `true` turns wrapping on. With `false` the interface behaves as the stock one.
 - `strict` — defaults to `true`, logs a warning when frames arrive without an envelope. Noise only, not a failure.
-- `operator_log` — optional. Path to the station log written by the interface.
+- `operator_log` — optional. Path to the station log written by the interface.---
+
+
+
+---
+
+## RX/TX Matrix for modified and unmodified stations
+
+| Sender | Receiver | Result |
+|---|---|---|
+| Stock | Stock | Works. Normal Reticulum. |
+| Stock | M73_RNS | **Works completely.** Frame passes through unchanged, logged as `rx_noenv`. |
+| M73_RNS | Stock | **Broken.** Prefix is added and never removed. Peer logs a protocol violation. |
+| M73_RNS | M73_RNS | Works. Full operation. |
+
+Adopting this does not cut you off.** An M73_RNS station receives from every stock station on the network with no loss at all. You can turn this on and keep working with everyone.
+
+...but your own transmissions are only readable by other stations running the mode.** A stock peer receives your frames, attributes them to your callsign, and then discards them, because the frame no longer starts with a valid Reticulum header.
+
+
 
 ---
 
