@@ -16,7 +16,8 @@ Publishing a private key is not like publishing a public one. Before you send it
 
 **You cannot undo it.** GitHub issues are permanent, public, indexed by search engines, and frequently mirrored by third parties. Deleting the issue later does not remove copies.
 
-**The only partial defence is the date.** A forgery can be dated any time after your key became public. Keeping a record of when you registered is what lets someone reason about it later.
+**Log File** It is therefor highly recommended to configure the `operator_log` in ~.reticulum/config under the [[M73CallsignInterface]]
+
 
 If authorship matters to your use of the network, do not register. The identification side of M73_RNS does not require publishing anything; only the transparency claim does.
 
