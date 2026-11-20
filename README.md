@@ -3,8 +3,9 @@
 **An operating mode for Reticulum on the amateur bands.**
 
 ---
+## Requirements
 
-### 1. Place the interface file
+### 1. Interface file
 
 Copy `M73CallsignInterface.py` into your Reticulum interfaces directory:
 
@@ -52,6 +53,7 @@ In `~/.reticulum/config`:
 - `strict` — defaults to `true`, logs a warning when frames arrive without an envelope. Noise only, not a failure.
 - `operator_log` — optional. Path to the station log written by the interface.---
 
+### 4. Publish your Callsign and Reticulum Identity Private Key 
 
 
 ---
@@ -75,12 +77,18 @@ Adopting this does not cut you off.** An M73_RNS station receives from every sto
 
 ## Verifying it works
 
-The interface writes a log you can read while it runs:
+The interface writes a log you can read while it runs. You can see this in Modem73 under the 'Utils' tab. There you will see a log like;
+```
+01:57:42 <- NOCALL: <followed by gibberish>
+```
+The gibberish is the RNS packet contents but transformed and mangled. You cannot decode from this. The RNS packet is still sent over KISS for normal decode.
+
+If you set a path in the [[M73CallsignInterface]] - `operator_log` the following data will be shown there;
 
 ```
-2026-11-19T14:42:55Z   tx         KJ5FQT     194B
-2026-11-19T16:53:47Z   rx         KF0YRY/2   183B
-2026-11-19T16:54:01Z   rx_noenv   -          241B
+2026-11-19T14:42:55Z   tx         <your-callsign>       194B
+2026-11-19T16:53:47Z   rx         <other's- callsign>   183B
+2026-11-19T16:54:01Z   rx_noenv   -                     241B
 ```
 
 - A `tx` line means your own transmission went out with your callsign on it.
@@ -102,32 +110,9 @@ Measured between two stations over a day of ordinary operation. Every frame reco
 | 221 B | 208 B | 13 B |
 | 194 B | 183 B | 11 B |
 
-The difference is the prefix: four bytes for `M73:`, one for the colon, and the callsign length. `KJ5FQT/2` is eight characters, so 13 bytes. `KJ5FQT` is six, so 11.
+The difference is the prefix: four bytes for `M73:`, one for the colon, and the callsign length. `NOCALL/2` is eight characters, so 13 bytes. `NOCALL` is six, so 11B.
 
 **The overhead formula is `len(callsign) + 5`.**
-
-If your own numbers do not reconcile that way, something is wrong.
-
----
-
-## What this does not do
-
-- **It does not make your traffic readable.** It makes it attributable. Reading it requires the published key and ratchets turned off, which are separate things.
-- **It does not make the operation lawful.** It satisfies the identification obligation on modes that cannot otherwise carry identification. That is a narrower and more defensible claim than the one people usually make, but it is still a claim, not a ruling.
-- **It does not work to stock stations.** See the table above.
-- **It does not provide forward secrecy.** That comes from the ratchet change, not from this interface.
-
----
-
-## Should you run it?
-
-Run it if you transmit Reticulum on RDM-300, RDM-600 or MFSK and you want your frames to carry your callsign. The identification benefit is real and it is not available any other way.
-
-Run it if you are willing to accept that stock stations will log your transmissions as protocol violations.
-
-Do not run it expecting it to make anything lawful. It does not.
-
-Do not run it on a network you do not own without telling the other operators first. They will see errors and think something is wrong.
 
 ---
 
@@ -161,7 +146,7 @@ Everything else — the control port, mode-aware bitrate, short frames, CSMA acc
 
 ## Disclaimer
 
-**No warranty. Not legal advice. An unproven theory, offered for use and argument.**
+**No warranty. Not legal advice. Offered for use and argument.**
 
 One reading of the rules, offered for testing. The identification argument is untested. If you transmit on the amateur bands you are the control operator and the decision is yours.
 
