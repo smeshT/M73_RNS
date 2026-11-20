@@ -20,7 +20,7 @@ The M73CallsignInterface subclasses the stock Modem73Interface not replaces it.
 
 ### 2. Turn ratchets off
 
-A station that publishes its private key cannot ratchets, because a peer holding a cached ratchet will encrypt to a key your published key cannot open. See the ratchets documentation on the Reticulum Callsign Registry for the one-line change and the identity consequences.
+A station that publishes its private key cannot ratchet, because a peer holding a cached ratchet will encrypt to a key your published key cannot open. See the ratchets documentation on the Reticulum Callsign Registry for the one-line change and the identity consequences.
 
 This is a prerequisite, not an option.
 
@@ -53,7 +53,7 @@ In `~/.reticulum/config`:
 - `callsign` — your station callsign. Validated at startup; the interface refuses to load if it is missing or malformed, rather than transmit a placeholder.
 - `envelope` — `true` turns wrapping on. With `false` the interface behaves as the stock one.
 - `strict` — defaults to `true`, logs a warning when frames arrive without an envelope. Noise only, not a failure.
-- `operator_log` — optional. Path to the station log written by the interface.---
+- `operator_log` — Path to the station log written by the interface.---optional but recommended for the ham bands, this will supplement your operator log. 
 
 ### 4. Publish your Callsign and Reticulum Identity Private Key 
 
