@@ -1,0 +1,58 @@
+name: Register a station
+description: Add your callsign and identity key to the Reticulum Callsign Registry
+title: "Registration: YOURCALL"
+labels: ["registration"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Before you paste your private key
+
+        This form makes your key permanently and publicly visible. GitHub notifications, search engines, and third-party mirrors will copy it.
+
+        Anyone with your key can:
+        - **read** every message addressed to that identity
+        - **forge** messages that verify against your published identity, indistinguishable from genuine
+
+        You cannot undo this. If authorship matters to you, [read the reasoning](../blob/main/PURPOSE.md) before continuing.
+
+        If you have not turned ratchets off yet, stop. Registration without that patch produces an entry that works for nobody. See [RATCHETS.md](../blob/main/RATCHETS.md).
+
+  - type: input
+    id: callsign
+    attributes:
+      label: Callsign
+      description: Your station callsign, including any suffix (for example KF0YRY/2).
+      placeholder: KJ5FQT
+    validations:
+      required: true
+
+  - type: input
+    id: private_key
+    attributes:
+      label: Private identity key (128 hex characters)
+      description: >
+        Run: python3 -c "print(open('path/to/identity','rb').read().hex())"
+        This is the identity file from your Reticulum installation. See REGISTER.md for paths.
+      placeholder: 00000000000000000000000000000000...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Acknowledgement
+      options:
+        - label: I understand that publishing this key makes my traffic readable AND forgeable, permanently.
+          required: true
+        - label: I have turned ratchets off and created my identity after doing so.
+          required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Optional. Operating notes, station description, or anything you want recorded alongside your entry.
+      placeholder: Optional
+    validations:
+      required: false

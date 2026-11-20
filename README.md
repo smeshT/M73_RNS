@@ -2,6 +2,8 @@
 
 **An operating mode for Reticulum on the amateur bands.**
 
+> Looking for something specific: [Register a station](REGISTER.md) · [Registry](REGISTRY.md) · [Decoding](DECODE.md) · [Ratchets](RATCHETS.md) · [Reasoning](PURPOSE.md) · [Why no plaintext](WHY-NO-PLAINTEXT.md)
+
 ---
 ## Requirements
 
@@ -44,7 +46,7 @@ In `~/.reticulum/config`:
     announces_to_internal = yes
 ```
 
-**If you already have a `[[Modem73]]` block in that config, disable it.** Two blocks pointing at ports 8002 and 8073 will contend for the connection and neither will work.
+**If you already have a `[[Modem73]]` block in that config, disable it.** Two blocks pointing at the same KISS and control ports will contend for the connection and neither will work.
 
 ### Notes on the config keys
 
@@ -149,6 +151,19 @@ Everything else — the control port, mode-aware bitrate, short frames, CSMA acc
 **No warranty. Not legal advice. Offered for use and argument.**
 
 One reading of the rules, offered for testing. The identification argument is untested. If you transmit on the amateur bands you are the control operator and the decision is yours.
+
+---
+
+## The rest of the documentation
+
+| Page | What is in it |
+|---|---|
+| [REGISTER.md](REGISTER.md) | How to get your station listed, and what publishing your key costs you |
+| [REGISTRY.md](REGISTRY.md) | The list of stations. Also [registry.csv](registry.csv) for machines |
+| [DECODE.md](DECODE.md) | How a third party reads a captured transmission, step by step |
+| [RATCHETS.md](RATCHETS.md) | The one-line patch, why the new identity is not optional, how to check any station |
+| [PURPOSE.md](PURPOSE.md) | Why publish a key at all. The argument, and its opponents |
+| [WHY-NO-PLAINTEXT.md](WHY-NO-PLAINTEXT.md) | Why Reticulum cannot simply send plaintext |
 
 ---
 
