@@ -70,7 +70,17 @@ Copy `M73CallsignInterface.py` into your Reticulum interfaces directory:
 
 The filename **must** be exactly `M73CallsignInterface.py`. Reticulum derives the file to load from the `type` value in your config, so `type = M73CallsignInterface` looks for a file of precisely that name. A name mismatch fails silently.
 
-You also need the stock `Modem73Interface.py` in the same directory. It is not part of this repository; it ships with the Modem73 interface setup for your hardware.
+**You do not need to download anything else.** `M73CallsignInterface.py` subclasses the stock
+`Modem73Interface`, which is already present in `~/.reticulum/interfaces/` on any machine that has
+been running Modem73. Leave it where it is — do not delete or rename it. The import would fail
+without it, and Reticulum would report the failure as `External interface initialisation failed`
+with a traceback pointing into `Reticulum.py` rather than at this file.
+
+One consequence worth knowing: this interface inherits from whatever copy of `Modem73Interface.py`
+you have installed. It relies on several of that class's internal attributes (`_short_mtu`,
+`_short_policy`, `_handshake_x2`, `_proof_x2`). They are stable, but they are not a published
+interface, so a future change to the stock file could break this one. If you see unexpected
+behaviour after updating Modem73, that is the first thing to check.
 
 ### 2. Turn ratchets off
 
