@@ -68,7 +68,21 @@ Copy `M73CallsignInterface.py` into your Reticulum interfaces directory:
 ~/.reticulum/interfaces/M73CallsignInterface.py
 ```
 
-The filename **must** be exactly `M73CallsignInterface.py`. Reticulum derives the file to load from the `type` value in your config, so `type = M73CallsignInterface` looks for a file of precisely that name. A name mismatch fails silently.
+The filename **must** be exactly `M73CallsignInterface.py`. Reticulum derives the file to load from
+the `type` value in your config, so `type = M73CallsignInterface` looks for a file of precisely that
+name.
+
+There are two different ways this goes wrong, and they behave very differently:
+
+| Mistake | What you see |
+|---|---|
+| `type` value does not match the filename | **Nothing.** Reticulum starts normally, the interface is simply absent, and no error is logged. |
+| The file is present but fails to load | `External interface initialisation failed` with a traceback pointing into `Reticulum.py` |
+
+The first is the dangerous one. A dotted module path such as `type = m73.M73CallsignInterface` also
+lands here: Reticulum does not treat it as a module, it looks for a *file* with that literal name,
+finds none, and carries on silently. If your interface seems not to exist, check that the `type`
+value and the filename are character-for-character identical before looking anywhere else.
 
 **You do not need to download anything else.** `M73CallsignInterface.py` subclasses the stock
 `Modem73Interface`, which is already present in `~/.reticulum/interfaces/` on any machine that has
