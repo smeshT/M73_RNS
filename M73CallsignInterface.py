@@ -147,10 +147,10 @@ class M73CallsignInterface(Modem73Interface):
     """Modem73Interface with an M73 callsign envelope.
 
     Only three seams are touched: the constructor (to read the new config
-    keys), process_outgoing (to wrap, after handshake/proof classification),
-    and process_incoming (to strip). Everything else -- the control port,
-    mode-aware bitrate, short frames, CSMA accounting -- stays with
-    Modem73Interface.
+    keys), process_outgoing (to wrap, after handshake/proof classification,
+    and to hold back recursive path requests), and process_incoming (to
+    strip). Everything else -- the control port, mode-aware bitrate, short
+    frames, CSMA accounting -- stays with Modem73Interface.
     """
 
     def __init__(self, owner, configuration):
@@ -158,6 +158,15 @@ class M73CallsignInterface(Modem73Interface):
         self.callsign = cfg.pop("callsign", None)
         self.envelope_enabled = _as_bool(cfg.pop("envelope", False))
         self.strict = _as_bool(cfg.pop("strict", True))
+        # "discover" (default) leaves Transport's path-request behaviour
+        # untouched. "passive" stops this interface from carrying recursive
+        # path requests that other interfaces generated; see _block_path_request.
+        self.path_discovery = str(cfg.pop("path_discovery", "discover")).lower()
+        if self.path_discovery not in ("discover", "passive"):
+            raise ValueError(
+                "path_discovery must be 'discover' or 'passive', not %r"
+                % self.path_discovery
+            )
         self.oplog_path = cfg.pop("operator_log", None)
         self.seen_callsigns = {}
         self.envelope_rejects = 0
@@ -210,6 +219,9 @@ class M73CallsignInterface(Modem73Interface):
             )
 
     def process_outgoing(self, data):
+        if self._block_path_request(data):
+            return
+
         if not (self.envelope_enabled and data):
             return super().process_outgoing(data)
 
@@ -254,6 +266,70 @@ class M73CallsignInterface(Modem73Interface):
             # Bypass Modem73Interface.process_outgoing (we already applied its
             # logic) and go straight to the KISS path.
             super(Modem73Interface, self).process_outgoing(data)
+
+    # ------------------------------------------------------------------
+    # Keep path discovery off the slow link.
+    #
+    # When a local client asks for an unknown destination, Transport puts a
+    # path request on every other online interface -- this one included, if
+    # its mode is one of DISCOVER_PATHS_FOR. The request is a single small
+    # broadcast, but on HF it costs the channel, holds announces behind the
+    # announce cap, and asks the far end for a lookup the TCP side can do
+    # faster. No config key means "answer requests, never relay them".
+    #
+    # So: recognise a path request going out on this interface, and drop it
+    # if it was a search for a destination this station does not yet know.
+    # A path request for a destination already in the path table is a direct
+    # answer to a specific peer, and is left alone.
+    def _block_path_request(self, data):
+        if self.path_discovery != "passive":
+            return False
+
+        destination_hash = self._path_request_destination(data)
+        if destination_hash is None:
+            return False
+
+        try:
+            known = destination_hash in RNS.Transport.path_table
+        except Exception:
+            return False
+
+        if known:
+            return False
+
+        if RNS.sl(RNS.LOG_PATHING):
+            RNS.log(
+                "Not sending path discovery request for "
+                + RNS.prettyhexrep(destination_hash)
+                + " on "
+                + str(self)
+                + " (path_discovery = passive)",
+                RNS.LOG_PATHING,
+            )
+        return True
+
+    @staticmethod
+    def _path_request_destination(data):
+        # A path request is a HEADER_1 single-destination DATA packet sent to
+        # the built-in "path.request" destination: dest hash, then the hash of
+        # the destination actually being searched for. Match the destination
+        # name at runtime rather than pinning a hash.
+        try:
+            if len(data) < 2 * (RNS.Identity.TRUNCATED_HASHLENGTH // 8):
+                return None
+            if (data[0] & 0x03) != (RNS.Packet.HEADER_1 | RNS.Packet.DATA):
+                return None
+            pr_hash = RNS.Destination.hash(
+                None, RNS.Transport.APP_NAME, "path", "request"
+            )
+            if data[2:2 + len(pr_hash)] != pr_hash:
+                return None
+            # One-byte packet-context/traffic-class field sits between the
+            # path-request destination hash and the hash being searched for.
+            start = 2 + len(pr_hash) + 1
+            return data[start:start + len(pr_hash)]
+        except Exception:
+            return None
 
     def process_incoming(self, data):
         if not data:
