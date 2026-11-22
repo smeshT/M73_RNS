@@ -9,7 +9,9 @@
 
 ### 1. Interface file
 
-Copy `M73CallsignInterface.py` into your Reticulum interfaces directory:
+The interface lives in its own repository: **https://github.com/smeshT/M73CallsignInterface.py**
+
+Copy `M73CallsignInterface.py` from there into your Reticulum interfaces directory:
 
 ```
 ~/.reticulum/interfaces/M73CallsignInterface.py
